@@ -2,7 +2,7 @@
 
 Universal FiveM framework bridge — **QBX · QBCore · ESX · ox_core · ND · Mythic**
 
-Auto-detects your framework and addon resources (inventory, vehicle keys, fuel) and exposes a single, consistent export API so your scripts never need to care which framework is running.
+Auto-detects your framework and addon resources (inventory, vehicle keys, fuel, target) and exposes a single consistent export API so your scripts never need to know which framework or addon is running.
 
 ---
 
@@ -24,6 +24,7 @@ Auto-detects your framework and addon resources (inventory, vehicle keys, fuel) 
 | Inventory | `ox_inventory` → `qb-inventory` |
 | Vehicle Keys | `qbx_vehiclekeys` → `qb-vehiclekeys` |
 | Vehicle Fuel | `ox_fuel` → `LegacyFuel` → `cdn-fuel` → `lc_fuel` → `qb-fuel` |
+| Target | `ox_target` → `qb-target` |
 
 ---
 
@@ -39,25 +40,17 @@ ensure your_resource
 
 ### ox_lib load order
 
-If your server uses **QBX, ND, or ox_core**, those frameworks require `ox_lib` and tac_bridge uses `lib` (the ox_lib global) for callbacks, notifications, and progress bars. You must ensure `ox_lib` starts **before** `tac_bridge`:
+tac_bridge includes `@ox_lib/init.lua` in its manifest by default. This is required for callbacks, notifications, and progress bars on QBX, ND, and ox_core — all of which list ox_lib as a mandatory dependency of their core resource.
+
+You must ensure `ox_lib` starts **before** `tac_bridge` in `server.cfg`:
 
 ```
-ensure ox_lib       # must come before tac_bridge
+ensure ox_lib       # must be above tac_bridge
 ensure tac_bridge
 ensure your_resource
 ```
 
-If `lib` is still nil after fixing the load order, uncomment the `@ox_lib/init.lua` line at the top of `tac_bridge/fxmanifest.lua`:
-
-```lua
-shared_scripts {
-    '@ox_lib/init.lua',  -- ← uncomment this line
-    'shared/config.lua',
-    ...
-}
-```
-
-> **Note:** Only uncomment `@ox_lib/init.lua` if ox_lib is installed on your server. If it is not installed, FiveM will throw an error on resource start. Leave it commented out and rely on correct `server.cfg` load order instead.
+> **Pure QB or ESX without ox_lib?** Comment out the `@ox_lib/init.lua` line at the top of `tac_bridge/fxmanifest.lua`. If ox_lib is not installed and that line is active, FiveM will throw an error on resource start.
 
 ---
 
@@ -85,14 +78,17 @@ Open `shared/config.lua` to override detection or disable modules:
 
 ```lua
 Bridge.Config = {
-    ForceFramework = nil,    -- force: 'qbx'|'qb'|'esx'|'ox'|'nd'|'mythic'
-    Inventory   = nil,       -- force: 'ox_inventory'|'qb-inventory'|false
-    VehicleKeys = nil,       -- force: 'qbx_vehiclekeys'|'qb-vehiclekeys'|false
-    VehicleFuel = nil,       -- force: 'ox_fuel'|'LegacyFuel'|'cdn-fuel'|'lc_fuel'|'qb-fuel'|false
+    ForceFramework = nil,  -- 'qbx'|'qb'|'esx'|'ox'|'nd'|'mythic' — nil = auto
+    Inventory   = nil,     -- 'ox_inventory'|'qb-inventory'|false   — nil = auto
+    VehicleKeys = nil,     -- 'qbx_vehiclekeys'|'qb-vehiclekeys'|false
+    VehicleFuel = nil,     -- 'ox_fuel'|'LegacyFuel'|'cdn-fuel'|'lc_fuel'|'qb-fuel'|false
+    Target      = nil,     -- 'ox_target'|'qb-target'|false
     NotifyDuration   = 5000,
     ProgressDuration = 5000,
 }
 ```
+
+Set any module to `false` to disable it entirely. Set it to a resource name string to force a specific resource instead of auto-detecting.
 
 ---
 
@@ -203,6 +199,156 @@ local plate = GetVehicleNumberPlateText(vehicle)
 
 -- Returns true if the local player has keys for this plate
 local hasKeys = exports.tac_bridge:HasVehicleKeys(plate)
+```
+
+### Target Module
+
+Requires one of: `ox_target` | `qb-target`
+
+Both resources are normalised to a single option format. The bridge converts internally — you never need to know which target is running.
+
+#### Option format
+
+```lua
+{
+    name        = 'unique_id',      -- required; used to remove the option later
+    label       = 'Do Something',
+    icon        = 'fa-solid fa-hand',
+    distance    = 2.0,
+    onSelect    = function(data) end,   -- fired when the player selects the option
+    canInteract = function(entity, distance, coords, name, bone)
+                      return true       -- return false to hide the option
+                  end,
+    groups      = { police = 0 },       -- job requirements { jobName = minGrade }
+    items       = { 'lockpick' },       -- item requirements
+}
+```
+
+#### Zone data format (box / sphere / poly)
+
+```lua
+{
+    name     = 'zone_name',
+    coords   = vector3(x, y, z),
+    -- box only:
+    size     = vector3(width, length, height),
+    heading  = 0.0,
+    -- sphere only:
+    radius   = 2.0,
+    -- poly only:
+    points   = { vector3(...), ... },
+    -- common:
+    options  = { { ...option... } },
+    distance = 2.5,
+    debug    = false,
+}
+```
+
+#### Zone functions
+
+```lua
+-- Check if any target resource is running
+local active = exports.tac_bridge:HasTarget()
+
+-- Box zone
+exports.tac_bridge:AddBoxZone({
+    name    = 'shop_zone',
+    coords  = vector3(123.4, -456.7, 28.9),
+    size    = vector3(1.5, 1.5, 1.5),
+    heading = 45.0,
+    options = {
+        {
+            name     = 'open_shop',
+            label    = 'Open Shop',
+            icon     = 'fa-solid fa-store',
+            distance = 2.0,
+            onSelect = function() TriggerEvent('myshop:open') end,
+        }
+    }
+})
+
+-- Sphere zone
+exports.tac_bridge:AddSphereZone({
+    name    = 'atm_sphere',
+    coords  = vector3(150.0, -200.0, 30.0),
+    radius  = 1.5,
+    options = { { name = 'use_atm', label = 'Use ATM', icon = 'fa-solid fa-credit-card',
+                  onSelect = function() TriggerEvent('bank:openAtm') end } }
+})
+
+-- Poly zone
+exports.tac_bridge:AddPolyZone({
+    name   = 'warehouse_zone',
+    points = { vector3(100,100,20), vector3(110,100,20), vector3(110,110,20), vector3(100,110,20) },
+    options = { { name = 'enter', label = 'Enter Warehouse', icon = 'fa-solid fa-door-open',
+                  onSelect = function() TriggerEvent('warehouse:enter') end } }
+})
+
+-- Remove any zone by name
+exports.tac_bridge:RemoveZone('shop_zone')
+```
+
+#### Entity & model targeting
+
+```lua
+-- Target specific networked entities (by net ID for ox_target, handle for qb-target)
+exports.tac_bridge:AddTargetEntity(entity, {
+    { name = 'search', label = 'Search Player', icon = 'fa-solid fa-search',
+      groups = { police = 0 },
+      onSelect = function(data) TriggerEvent('police:search', data.entity) end }
+}, 2.0)
+
+exports.tac_bridge:RemoveTargetEntity(entity, 'search')
+
+-- Target local (client-only) entities by handle
+exports.tac_bridge:AddLocalEntity(myPed, {
+    { name = 'talk', label = 'Talk', icon = 'fa-solid fa-comment',
+      onSelect = function() TriggerEvent('npc:talk') end }
+}, 3.0)
+
+exports.tac_bridge:RemoveLocalEntity(myPed)
+
+-- Target all entities of certain model(s)
+exports.tac_bridge:AddTargetModel({ 'prop_atm_01', 'prop_atm_02', 'prop_atm_03' }, {
+    { name = 'use_atm', label = 'Use ATM', icon = 'fa-solid fa-money-bill',
+      onSelect = function() TriggerEvent('bank:openAtm') end }
+}, 2.0)
+
+exports.tac_bridge:RemoveTargetModel({ 'prop_atm_01', 'prop_atm_02', 'prop_atm_03' }, 'use_atm')
+```
+
+#### Global type targeting
+
+```lua
+-- Add option to ALL players
+exports.tac_bridge:AddGlobalPlayer({
+    { name = 'handcuff', label = 'Handcuff', icon = 'fa-solid fa-handcuffs',
+      groups = { police = 0 },
+      onSelect = function(data) TriggerEvent('police:handcuff', data.entity) end }
+}, 2.0)
+exports.tac_bridge:RemoveGlobalPlayer('handcuff')
+
+-- Add option to ALL peds
+exports.tac_bridge:AddGlobalPed({
+    { name = 'rob_ped', label = 'Rob', icon = 'fa-solid fa-gun',
+      onSelect = function(data) TriggerEvent('robbery:robPed', data.entity) end }
+}, 1.5)
+exports.tac_bridge:RemoveGlobalPed('rob_ped')
+
+-- Add option to ALL vehicles
+exports.tac_bridge:AddGlobalVehicle({
+    { name = 'check_plate', label = 'Check Plate', icon = 'fa-solid fa-car',
+      groups = { police = 0 },
+      onSelect = function(data) TriggerEvent('police:checkPlate', data.entity) end }
+}, 3.0)
+exports.tac_bridge:RemoveGlobalVehicle('check_plate')
+
+-- Add option to ALL objects
+exports.tac_bridge:AddGlobalObject({
+    { name = 'inspect', label = 'Inspect', icon = 'fa-solid fa-magnifying-glass',
+      onSelect = function(data) TriggerEvent('interact:inspect', data.entity) end }
+}, 2.0)
+exports.tac_bridge:RemoveGlobalObject('inspect')
 ```
 
 ---
@@ -328,34 +474,50 @@ end)
 ### client.lua
 
 ```lua
-local function onUseItem()
-    if not exports.tac_bridge:IsPlayerLoaded() then return end
+-- Register a target zone on a police computer prop
+exports.tac_bridge:AddTargetModel({ 'prop_computer_01', 'prop_computer_lct_01a' }, {
+    {
+        name     = 'police_mdt',
+        label    = 'Open MDT',
+        icon     = 'fa-solid fa-computer',
+        distance = 2.0,
+        groups   = { police = 0 },
+        onSelect = function()
+            if not exports.tac_bridge:IsPlayerLoaded() then return end
 
-    local job  = exports.tac_bridge:GetJobName()
-    local cash = exports.tac_bridge:GetMoney('cash')
+            exports.tac_bridge:Progress({
+                label           = 'Accessing terminal...',
+                duration        = 2000,
+                disableMovement = true,
+            }, function(completed)
+                if not completed then return end
 
-    if job ~= 'police' then
-        exports.tac_bridge:Notify('You are not a cop!', 'error')
-        return
-    end
+                local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+                local plate   = GetVehicleNumberPlateText(vehicle)
 
-    exports.tac_bridge:Progress({
-        label           = 'Checking vehicle...',
-        duration        = 3000,
-        disableMovement = true,
-    }, function(completed)
-        if not completed then return end
+                exports.tac_bridge:TriggerCallback('myresource:checkPlate', function(result)
+                    exports.tac_bridge:Notify(result.message, result.type)
+                end, plate)
+            end)
+        end,
+    }
+}, 2.0)
 
-        local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-        local plate   = GetVehicleNumberPlateText(vehicle)
-        local fuel    = exports.tac_bridge:GetFuel(vehicle)
-        local hasKeys = exports.tac_bridge:HasVehicleKeys(plate)
-
-        exports.tac_bridge:TriggerCallback('myresource:checkPlate', function(result)
-            exports.tac_bridge:Notify(result.message, result.type)
-        end, plate)
-    end)
-end
+-- Add a target to all players (police can frisk)
+exports.tac_bridge:AddGlobalPlayer({
+    {
+        name     = 'frisk_player',
+        label    = 'Frisk',
+        icon     = 'fa-solid fa-hand',
+        distance = 1.5,
+        groups   = { police = 0 },
+        onSelect = function(data)
+            TriggerServerEvent('police:frisk', GetPlayerServerId(
+                NetworkGetPlayerIndexFromPed(data.entity)
+            ))
+        end,
+    }
+})
 ```
 
 ### server.lua
@@ -370,13 +532,18 @@ exports.tac_bridge:RegisterCallback('myresource:checkPlate', function(src, cb, p
         return cb({ message = 'Access denied', type = 'error' })
     end
 
-    -- Give a reward
     exports.tac_bridge:AddMoney(src, 'cash', 100, 'plate_check_fee')
     exports.tac_bridge:AddItem(src, 'evidence_bag', 1)
     exports.tac_bridge:GiveVehicleKeys(src, plate)
 
     exports.tac_bridge:Notify(src, ('Officer %s checked plate %s'):format(name, plate), 'success')
     cb({ message = ('Plate %s — cleared'):format(plate), type = 'success' })
+end)
+
+RegisterNetEvent('police:frisk', function()
+    local src = source
+    if exports.tac_bridge:GetJobName(src) ~= 'police' then return end
+    exports.tac_bridge:Notify(src, 'Player frisked', 'info')
 end)
 ```
 
