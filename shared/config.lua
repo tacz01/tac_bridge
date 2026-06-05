@@ -14,7 +14,8 @@ Bridge.Config = {
     -- Set to false to completely disable that module.
     Inventory   = nil,    -- nil = auto | 'ox_inventory' | 'qb-inventory' | false
     VehicleKeys = nil,    -- nil = auto | 'qbx_vehiclekeys' | 'qb-vehiclekeys' | false
-    VehicleFuel = nil,    -- nil = auto | 'ox_fuel' | 'LegacyFuel' | 'cdn-fuel' | 'lc_fuel' | 'qb-fuel' | false
+    VehicleFuel = nil,    -- nil = auto | 'ox_fuel'|'LegacyFuel'|'cdn-fuel'|'lc_fuel'|'qb-fuel' | false
+    Target      = nil,    -- nil = auto | 'ox_target' | 'qb-target' | false
 
     -- Default notification duration (ms)
     NotifyDuration = 5000,

@@ -130,3 +130,104 @@ _G.HasVehicleKeys = function(plate)
     if type(Bridge.Client.HasVehicleKeys) ~= 'function' then return false end
     return Bridge.Client.HasVehicleKeys(plate) == true
 end
+
+-- ── Target module ──────────────────────────────────────────────────────────
+-- Returns true if ox_target or qb-target is running.
+_G.HasTarget = function()
+    if type(Bridge.Client.HasTarget) ~= 'function' then return false end
+    return Bridge.Client.HasTarget()
+end
+
+-- Zone creation
+_G.AddBoxZone = function(data)
+    if type(Bridge.Client.AddBoxZone) ~= 'function' then return end
+    return Bridge.Client.AddBoxZone(data)
+end
+
+_G.AddSphereZone = function(data)
+    if type(Bridge.Client.AddSphereZone) ~= 'function' then return end
+    return Bridge.Client.AddSphereZone(data)
+end
+
+_G.AddPolyZone = function(data)
+    if type(Bridge.Client.AddPolyZone) ~= 'function' then return end
+    return Bridge.Client.AddPolyZone(data)
+end
+
+_G.RemoveZone = function(name)
+    if type(Bridge.Client.RemoveZone) ~= 'function' then return end
+    Bridge.Client.RemoveZone(name)
+end
+
+-- Entity targeting
+_G.AddTargetEntity = function(entities, options, distance)
+    if type(Bridge.Client.AddTargetEntity) ~= 'function' then return end
+    Bridge.Client.AddTargetEntity(entities, options, distance)
+end
+
+_G.RemoveTargetEntity = function(entities, labels)
+    if type(Bridge.Client.RemoveTargetEntity) ~= 'function' then return end
+    Bridge.Client.RemoveTargetEntity(entities, labels)
+end
+
+_G.AddLocalEntity = function(entities, options, distance)
+    if type(Bridge.Client.AddLocalEntity) ~= 'function' then return end
+    Bridge.Client.AddLocalEntity(entities, options, distance)
+end
+
+_G.RemoveLocalEntity = function(entities, labels)
+    if type(Bridge.Client.RemoveLocalEntity) ~= 'function' then return end
+    Bridge.Client.RemoveLocalEntity(entities, labels)
+end
+
+-- Model targeting
+_G.AddTargetModel = function(models, options, distance)
+    if type(Bridge.Client.AddTargetModel) ~= 'function' then return end
+    Bridge.Client.AddTargetModel(models, options, distance)
+end
+
+_G.RemoveTargetModel = function(models, labels)
+    if type(Bridge.Client.RemoveTargetModel) ~= 'function' then return end
+    Bridge.Client.RemoveTargetModel(models, labels)
+end
+
+-- Global types
+_G.AddGlobalPlayer = function(options, distance)
+    if type(Bridge.Client.AddGlobalPlayer) ~= 'function' then return end
+    Bridge.Client.AddGlobalPlayer(options, distance)
+end
+
+_G.RemoveGlobalPlayer = function(labels)
+    if type(Bridge.Client.RemoveGlobalPlayer) ~= 'function' then return end
+    Bridge.Client.RemoveGlobalPlayer(labels)
+end
+
+_G.AddGlobalPed = function(options, distance)
+    if type(Bridge.Client.AddGlobalPed) ~= 'function' then return end
+    Bridge.Client.AddGlobalPed(options, distance)
+end
+
+_G.RemoveGlobalPed = function(labels)
+    if type(Bridge.Client.RemoveGlobalPed) ~= 'function' then return end
+    Bridge.Client.RemoveGlobalPed(labels)
+end
+
+_G.AddGlobalVehicle = function(options, distance)
+    if type(Bridge.Client.AddGlobalVehicle) ~= 'function' then return end
+    Bridge.Client.AddGlobalVehicle(options, distance)
+end
+
+_G.RemoveGlobalVehicle = function(labels)
+    if type(Bridge.Client.RemoveGlobalVehicle) ~= 'function' then return end
+    Bridge.Client.RemoveGlobalVehicle(labels)
+end
+
+_G.AddGlobalObject = function(options, distance)
+    if type(Bridge.Client.AddGlobalObject) ~= 'function' then return end
+    Bridge.Client.AddGlobalObject(options, distance)
+end
+
+_G.RemoveGlobalObject = function(labels)
+    if type(Bridge.Client.RemoveGlobalObject) ~= 'function' then return end
+    Bridge.Client.RemoveGlobalObject(labels)
+end

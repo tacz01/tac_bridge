@@ -4,7 +4,7 @@ lua54 'yes'
 
 name        'tac_bridge'
 description 'Universal FiveM framework bridge — QBX / QBCore / ESX / ox_core / ND / Mythic'
-version     '1.0.1'
+version     '1.0.2'
 author      'tac'
 
 -- ──────────────────────────────────────────────────────────────────────────
@@ -29,6 +29,7 @@ shared_scripts {
 client_scripts {
     'client/bridge.lua',
     'client/modules.lua',
+    'client/target.lua',
     'client/exports.lua',
 }
 
@@ -72,6 +73,26 @@ client_exports {
     'SetFuel',
     -- VehicleKeys module
     'HasVehicleKeys',
+    -- Target module
+    'HasTarget',
+    'AddBoxZone',
+    'AddSphereZone',
+    'AddPolyZone',
+    'RemoveZone',
+    'AddTargetEntity',
+    'RemoveTargetEntity',
+    'AddLocalEntity',
+    'RemoveLocalEntity',
+    'AddTargetModel',
+    'RemoveTargetModel',
+    'AddGlobalPlayer',
+    'RemoveGlobalPlayer',
+    'AddGlobalPed',
+    'RemoveGlobalPed',
+    'AddGlobalVehicle',
+    'RemoveGlobalVehicle',
+    'AddGlobalObject',
+    'RemoveGlobalObject',
 }
 
 -- ──────────────────────────────────────────────────────────────────────────
