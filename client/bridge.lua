@@ -46,7 +46,8 @@ local _core = nil
 local function getCore()
     if _core then return _core end
     if fw == 'qbx' then
-        _core = exports.qbx_core:GetCoreObject()
+        -- QBX removed GetCoreObject — it is fully export-based on client too.
+        _core = true
     elseif fw == 'qb' then
         _core = exports['qb-core']:GetCoreObject()
     elseif fw == 'esx' then
@@ -82,7 +83,10 @@ end
 -- ─────────────────────────────────────────────
 function Bridge.Client.GetPlayerData()
     getCore()
-    if fw == 'qbx' or fw == 'qb' then
+    if fw == 'qbx' then
+        -- QBX: direct export (no core object)
+        return exports.qbx_core:GetPlayerData() or {}
+    elseif fw == 'qb' then
         return _core.Functions.GetPlayerData()
     elseif fw == 'esx' then
         return _core.GetPlayerData()
@@ -260,7 +264,7 @@ function Bridge.Client.Notify(message, notifyType, duration)
     notifyType = notifyType or 'info'
     duration   = duration   or cfg.NotifyDuration
 
-    if GetResourceState('ox_lib') == 'started' then
+    if GetResourceState('ox_lib') == 'started' and lib and lib.notify then
         lib.notify({ title = message, type = notifyType, duration = duration })
         return
     end
@@ -286,7 +290,7 @@ function Bridge.Client.Progress(opts, callback)
     local label    = opts.label    or 'Working...'
     local duration = opts.duration or cfg.ProgressDuration
 
-    if GetResourceState('ox_lib') == 'started' then
+    if GetResourceState('ox_lib') == 'started' and lib and lib.progressBar then
         local done = lib.progressBar({
             duration     = duration,
             label        = label,
@@ -334,7 +338,11 @@ end
 function Bridge.Client.TriggerCallback(name, callback, ...)
     local args = { ... }
     if fw == 'qbx' or fw == 'nd' or fw == 'ox' then
-        lib.callback(name, false, callback, table.unpack(args))
+        if lib and lib.callback then
+            lib.callback(name, false, callback, table.unpack(args))
+        else
+            print('^3[tac_bridge] TriggerCallback: ox_lib not available. Ensure ox_lib starts before tac_bridge.^0')
+        end
     elseif fw == 'qb' then
         getCore().Functions.TriggerCallback(name, callback, table.unpack(args))
     elseif fw == 'esx' then
@@ -352,7 +360,11 @@ end
 -- ─────────────────────────────────────────────
 function Bridge.Client.RegisterCallback(name, handler)
     if fw == 'qbx' or fw == 'nd' or fw == 'ox' then
-        lib.callback.register(name, handler)
+        if lib and lib.callback then
+            lib.callback.register(name, handler)
+        else
+            print('^3[tac_bridge] RegisterCallback: ox_lib not available. Ensure ox_lib starts before tac_bridge.^0')
+        end
     elseif fw == 'qb' then
         getCore().Functions.CreateClientCallback(name, handler)
     elseif fw == 'mythic' then
@@ -395,12 +407,16 @@ end
 Bridge.Client.OnPlayerUpdated = Bridge.Client.OnPlayerUpdated or function(key, value) end
 
 if fw == 'qb' or fw == 'qbx' then
+    RegisterNetEvent('QBCore:Client:OnPlayerUpdated')
     AddEventHandler('QBCore:Client:OnPlayerUpdated', function(key, value)
         Bridge.Client.OnPlayerUpdated(key, value)
     end)
 end
 
 if fw == 'nd' then
+    RegisterNetEvent('ND:updateCharacter')
+    RegisterNetEvent('ND:updateMoney')
+    RegisterNetEvent('ND:characterLoaded')
     AddEventHandler('ND:updateCharacter', function(character, key)
         if source == '' then return end
         Bridge.Client.OnPlayerUpdated(key or 'all', character)
@@ -416,7 +432,8 @@ if fw == 'nd' then
 end
 
 if fw == 'ox' then
-    -- ox_core fires 'ox:playerLoaded' when character is ready
+    RegisterNetEvent('ox:playerLoaded')
+    RegisterNetEvent('ox:setGroup')
     AddEventHandler('ox:playerLoaded', function(data)
         Bridge.Client.OnPlayerUpdated('all', data)
     end)
@@ -434,6 +451,7 @@ end
 Bridge.Client.OnMoneyChange = Bridge.Client.OnMoneyChange or function(account, amount, action, reason) end
 
 if fw == 'qb' or fw == 'qbx' then
+    RegisterNetEvent('QBCore:Client:OnMoneyChange')
     AddEventHandler('QBCore:Client:OnMoneyChange', function(account, amount, action, reason)
         Bridge.Client.OnMoneyChange(account, amount, action, reason)
     end)

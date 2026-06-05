@@ -53,7 +53,8 @@ local _core = nil
 local function getCore()
     if _core then return _core end
     if fw == 'qbx' then
-        _core = exports.qbx_core:GetCoreObject()
+        -- QBX removed GetCoreObject server-side — it is purely export-based.
+        _core = true
     elseif fw == 'qb' then
         _core = exports['qb-core']:GetCoreObject()
     elseif fw == 'esx' then
@@ -83,9 +84,10 @@ end
 function Bridge.Server.GetPlayer(src)
     getCore()
     if fw == 'qbx' then
-        return _core.Functions.GetPlayer(src)
+        -- QBX: direct export only (GetCoreObject removed server-side)
+        return exports.qbx_core:GetPlayer(src)
     elseif fw == 'qb' then
-        -- New flat export (added recently); falls back to core object
+        -- New flat export; falls back to core object for older QB builds
         local ok, p = pcall(function() return exports['qb-core']:GetPlayer(src) end)
         if ok and p then return p end
         return _core.Functions.GetPlayer(src)
@@ -108,7 +110,7 @@ end
 function Bridge.Server.GetPlayerByCitizenId(cid)
     getCore()
     if fw == 'qbx' then
-        return _core.Functions.GetPlayerByCitizenId(cid)
+        return exports.qbx_core:GetPlayerByCitizenId(cid)
     elseif fw == 'qb' then
         local ok, p = pcall(function() return exports['qb-core']:GetPlayerByCitizenId(cid) end)
         if ok and p then return p end
@@ -507,16 +509,26 @@ end
 --           where cb receives (source, data, respond)
 -- ─────────────────────────────────────────────
 function Bridge.Server.RegisterCallback(name, handler)
-    if fw == 'qbx' or fw == 'nd' then
-        lib.callback.register(name, handler)
+    if fw == 'qbx' or fw == 'nd' or fw == 'ox' then
+        -- ox_lib callbacks (lib is the ox_lib global, loaded via @ox_lib/init.lua)
+        if lib and lib.callback then
+            lib.callback.register(name, handler)
+        else
+            -- Fallback: raw net event (no return value — client must fire-and-forget or use a different pattern)
+            print('^3[tac_bridge] WARNING: ox_lib not available for RegisterCallback. Add @ox_lib/init.lua to your fxmanifest or ensure ox_lib is started before tac_bridge.^0')
+            RegisterNetEvent('__tac_cb:' .. name)
+            AddEventHandler('__tac_cb:' .. name, function(cbId, ...)
+                local src = source
+                handler(src, function(result)
+                    TriggerClientEvent('__tac_cbr:' .. name, src, cbId, result)
+                end, ...)
+            end)
+        end
     elseif fw == 'qb' then
         getCore().Functions.CreateCallback(name, handler)
     elseif fw == 'esx' then
         getCore().RegisterServerCallback(name, handler)
-    elseif fw == 'ox' then
-        lib.callback.register(name, handler)
     elseif fw == 'mythic' then
-        -- Mythic: COMPONENTS.Callbacks:RegisterServerCallback(event, function(source, data, respond) end)
         if COMPONENTS and COMPONENTS.Callbacks then
             COMPONENTS.Callbacks:RegisterServerCallback(name, function(source, data, respond)
                 handler(source, respond, data)
@@ -556,7 +568,8 @@ function Bridge.Server.GetAllPlayers()
     local result = {}
     getCore()
     if fw == 'qbx' then
-        for _, s in ipairs(_core.Functions.GetPlayers()) do result[#result+1] = s end
+        -- QBX doesn't export GetPlayers — use FiveM native which always works
+        for _, s in ipairs(GetPlayers()) do result[#result+1] = tonumber(s) end
     elseif fw == 'qb' then
         local ok, list = pcall(function() return exports['qb-core']:GetPlayers() end)
         for _, s in ipairs((ok and list) or _core.Functions.GetPlayers()) do result[#result+1] = s end

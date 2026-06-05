@@ -4,6 +4,8 @@ Universal FiveM framework bridge — **QBX · QBCore · ESX · ox_core · ND · 
 
 Auto-detects your framework and addon resources (inventory, vehicle keys, fuel) and exposes a single, consistent export API so your scripts never need to care which framework is running.
 
+---
+
 ## Supported Frameworks
 
 | Key | Resource | Org |
@@ -23,6 +25,8 @@ Auto-detects your framework and addon resources (inventory, vehicle keys, fuel) 
 | Vehicle Keys | `qbx_vehiclekeys` → `qb-vehiclekeys` |
 | Vehicle Fuel | `ox_fuel` → `LegacyFuel` → `cdn-fuel` → `lc_fuel` → `qb-fuel` |
 
+---
+
 ## Installation
 
 1. Drop the `tac_bridge` folder into your `resources` directory.
@@ -32,6 +36,30 @@ Auto-detects your framework and addon resources (inventory, vehicle keys, fuel) 
 ensure tac_bridge
 ensure your_resource
 ```
+
+### ox_lib load order
+
+If your server uses **QBX, ND, or ox_core**, those frameworks require `ox_lib` and tac_bridge uses `lib` (the ox_lib global) for callbacks, notifications, and progress bars. You must ensure `ox_lib` starts **before** `tac_bridge`:
+
+```
+ensure ox_lib       # must come before tac_bridge
+ensure tac_bridge
+ensure your_resource
+```
+
+If `lib` is still nil after fixing the load order, uncomment the `@ox_lib/init.lua` line at the top of `tac_bridge/fxmanifest.lua`:
+
+```lua
+shared_scripts {
+    '@ox_lib/init.lua',  -- ← uncomment this line
+    'shared/config.lua',
+    ...
+}
+```
+
+> **Note:** Only uncomment `@ox_lib/init.lua` if ox_lib is installed on your server. If it is not installed, FiveM will throw an error on resource start. Leave it commented out and rely on correct `server.cfg` load order instead.
+
+---
 
 ## Using as a Dependency
 
@@ -48,6 +76,8 @@ server_scripts { 'server/*.lua' }
 ```
 
 That's it. All exports are then available via `exports.tac_bridge:FunctionName()`.
+
+---
 
 ## Configuration
 
@@ -121,8 +151,6 @@ local count = exports.tac_bridge:GetItemCount('lockpick')
 ```
 
 ### Notifications & UI
-
--- Not Really useful you can just use ox_lib if used but if using a standerd framework like qb for notifications this can be used can be easier if your lazy :)
 
 ```lua
 -- type: 'success' | 'error' | 'info' | 'warning'
@@ -280,8 +308,6 @@ exports.tac_bridge:RemoveVehicleKeys(source, plate)
 ```
 
 ### Notify & Callbacks
-
--- Not Really useful you can just use ox_lib if used but if using a standerd framework like qb for Notify this can be used can be easier if your lazy :)
 
 ```lua
 -- Send a notification to a player

@@ -19,8 +19,9 @@
       the replicated flag (true), making it visible to all clients.
 ]]
 
-Bridge = Bridge or {}
-local mods = Bridge.Modules
+Bridge        = Bridge or {}
+Bridge.Server = Bridge.Server or {}
+local mods = Bridge.Modules or {}
 
 -- ─────────────────────────────────────────────
 -- VEHICLE KEYS — server side
@@ -79,7 +80,7 @@ end
 -- When client calls tac_bridge:setFuel, we set the statebag with replicated=true
 -- so all clients (not just the sender) see the updated fuel level.
 -- ─────────────────────────────────────────────
-if mods.VehicleFuel == 'ox_fuel' then
+if mods and mods.VehicleFuel == 'ox_fuel' then
     RegisterNetEvent('tac_bridge:setFuel', function(netId, amount)
         local vehicle = NetworkGetEntityFromNetworkId(netId)
         if vehicle and vehicle ~= 0 then

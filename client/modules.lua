@@ -17,8 +17,12 @@
       qb-vehiclekeys  — player metadata 'vehiclekeys' table
 ]]
 
-Bridge = Bridge or {}
-local mods = Bridge.Modules
+Bridge        = Bridge or {}
+Bridge.Client = Bridge.Client or {}
+
+-- Grab module/framework refs safely — if shared scripts failed for any reason
+-- these will be empty tables rather than nil, preventing load-time crashes.
+local mods = Bridge.Modules or {}
 local fw   = Bridge.Framework
 
 -- ─────────────────────────────────────────────
@@ -27,28 +31,24 @@ local fw   = Bridge.Framework
 
 --- Returns current fuel level (0–100) for a vehicle entity.
 function Bridge.Client.GetFuel(vehicle)
-    if not mods.VehicleFuel then return 100 end
+    if not mods or not mods.VehicleFuel then return 100 end
 
     if mods.VehicleFuel == 'ox_fuel' then
-        -- ox_fuel stores fuel in an entity statebag (set by server)
         return Entity(vehicle).state.fuel or 100
     end
 
-    -- All other fuel resources expose GetFuel(vehicle) as a client export
     local ok, val = pcall(function()
         return exports[mods.VehicleFuel]:GetFuel(vehicle)
     end)
     return (ok and tonumber(val)) or 100
 end
 
---- Sets fuel level on a vehicle.
---- For ox_fuel the set must happen server-side; this sends a server event.
+--- Sets fuel level (0–100) on a vehicle.
 function Bridge.Client.SetFuel(vehicle, amount)
-    if not mods.VehicleFuel then return end
+    if not mods or not mods.VehicleFuel then return end
     amount = math.max(0, math.min(100, tonumber(amount) or 0))
 
     if mods.VehicleFuel == 'ox_fuel' then
-        -- ox_fuel: trigger the server-side setter
         TriggerServerEvent('tac_bridge:setFuel', NetworkGetNetworkIdFromEntity(vehicle), amount)
         return
     end
@@ -64,7 +64,7 @@ end
 
 --- Returns true if the local player has keys for the given plate.
 function Bridge.Client.HasVehicleKeys(plate)
-    if not mods.VehicleKeys or not plate then return false end
+    if not mods or not mods.VehicleKeys or not plate then return false end
     plate = plate:upper():gsub('%s+', '')
 
     if mods.VehicleKeys == 'qbx_vehiclekeys' then
@@ -74,8 +74,7 @@ function Bridge.Client.HasVehicleKeys(plate)
         return ok and keys ~= nil and keys[plate] == true
 
     elseif mods.VehicleKeys == 'qb-vehiclekeys' then
-        -- qb-vehiclekeys stores keys in player metadata
-        local pd = Bridge.Client.GetPlayerData()
+        local pd   = Bridge.Client.GetPlayerData and Bridge.Client.GetPlayerData() or {}
         local meta = pd and pd.metadata
         if meta and meta.vehiclekeys then
             for _, p in ipairs(meta.vehiclekeys) do
@@ -88,10 +87,10 @@ function Bridge.Client.HasVehicleKeys(plate)
 end
 
 -- ─────────────────────────────────────────────
--- ox_fuel helper: server-side relay
--- (Only registered when ox_fuel is the active fuel resource)
+-- ox_fuel client relay
+-- nil-guarded so a missing Bridge.Modules never crashes this file
 -- ─────────────────────────────────────────────
-if mods.VehicleFuel == 'ox_fuel' then
+if mods and mods.VehicleFuel == 'ox_fuel' then
     RegisterNetEvent('tac_bridge:fuelSet')
     AddEventHandler('tac_bridge:fuelSet', function(netId, amount)
         local vehicle = NetworkGetEntityFromNetworkId(netId)
