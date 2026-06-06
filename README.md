@@ -4,29 +4,26 @@ Universal FiveM framework bridge — **QBX · QBCore · ESX · ox_core · ND · 
 
 Auto-detects your framework and addon modules and exposes a single consistent export API so your scripts never need to know which framework is running underneath.
 
-Built using the same patterns as [bl_bridge](https://github.com/Byte-Labs-Studio/bl_bridge) and [community_bridge](https://github.com/TheOrderFivem/community_bridge) — `use_experimental_fxv2_oal` + programmatic `exports(name, fn)` registration, which is the most compatible approach across FiveM server versions.
-
----
-
 ## Supported Frameworks
 
 | Key | Resource | Notes |
 |-----|----------|-------|
-| `qbx` | `qbx_core` | QBX — fully export-based, no GetCoreObject |
-| `qb` | `qb-core` | QBCore — flat API + legacy `.Functions.*` fallback |
-| `esx` | `es_extended` | ESX Legacy |
-| `ox` | `ox_core` | ox_core (archived Apr 2025; esx fork supported) |
+| `qbx` | `qbx_core` | Qbox Framework |
+| `qb` | `qb-core` | QBCore Framework |
+| `esx` | `es_extended` | ESX Legacy Framework |
+| `ox` | `ox_core` | ox Framework (archived Apr 2025)|
 | `nd` | `ND_Core` | ND Framework |
-| `mythic` | `mythic-base` | Mythic — stubs for money/job, see note below |
+| `mythic` | `mythic-base` | Mythic Framework |
 
 ## Supported Addon Modules
 
 | Module | Auto-detected resources (priority order) |
 |--------|------------------------------------------|
+| Target | `ox_target` → `qb-target` |
 | Inventory | `ox_inventory` → `qb-inventory` |
 | Vehicle Keys | `qbx_vehiclekeys` → `qb-vehiclekeys` |
 | Vehicle Fuel | `ox_fuel` → `LegacyFuel` → `cdn-fuel` → `lc_fuel` → `qb-fuel` |
-| Target | `ox_target` → `qb-target` |
+
 
 ---
 
@@ -288,14 +285,6 @@ exports.tac_bridge:RegisterCallback('myresource:doThing', function(src, cb)
     cb({ msg = 'Done!', type = 'success' })
 end)
 ```
-
----
-
-## How It Works
-
-tac_bridge uses `use_experimental_fxv2_oal 'yes'` and registers all client exports programmatically via `exports(name, fn)` — the same approach used by bl_bridge and community_bridge. This is more reliable than the `client_exports` manifest block approach and works across all modern FiveM server versions.
-
----
 
 ## Mythic Note
 
