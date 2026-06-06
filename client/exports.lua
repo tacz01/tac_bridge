@@ -1,248 +1,252 @@
 --[[
     tac_bridge — client/exports.lua
 
-    All functions are declared as plain Lua globals so FiveM's client_exports
-    system can resolve them.  Each one nil-guards Bridge.Client so callers
-    never crash if tac_bridge hasn't finished initialising yet.
+    Registers all client exports via exports(name, fn) — the same pattern used
+    by bl_bridge and community_bridge.  This requires use_experimental_fxv2_oal
+    in fxmanifest.lua, which is now set.  No client_exports manifest block needed.
 ]]
 
 Bridge        = Bridge        or {}
 Bridge.Client = Bridge.Client or {}
 
-print('^2[tac_bridge] client/exports.lua: loading (fw=' .. tostring(Bridge.Framework) .. ')^0')
+-- ── Helper ─────────────────────────────────────────────────────────────────
+-- Mirrors bl_bridge's pattern: exports(name, fn) in OAL runtime = client export.
+local function reg(name, fn)
+    exports(name, fn)
+end
 
 -- ── Player ─────────────────────────────────────────────────────────────────
 
-function GetPlayerData()
+reg('GetPlayerData', function()
     if type(Bridge.Client.GetPlayerData) ~= 'function' then return {} end
     return Bridge.Client.GetPlayerData() or {}
-end
+end)
 
-function GetIdentifier()
+reg('GetIdentifier', function()
     if type(Bridge.Client.GetIdentifier) ~= 'function' then return nil end
     return Bridge.Client.GetIdentifier()
-end
+end)
 
-function GetName()
+reg('GetName', function()
     if type(Bridge.Client.GetName) ~= 'function' then return 'Unknown' end
     return Bridge.Client.GetName()
-end
+end)
 
-function IsPlayerLoaded()
+reg('IsPlayerLoaded', function()
     if type(Bridge.Client.IsPlayerLoaded) ~= 'function' then return false end
     return Bridge.Client.IsPlayerLoaded() == true
-end
+end)
 
 -- ── Job ────────────────────────────────────────────────────────────────────
 
-function GetJob()
+reg('GetJob', function()
     if type(Bridge.Client.GetJob) ~= 'function' then return {} end
     return Bridge.Client.GetJob() or {}
-end
+end)
 
-function GetJobName()
+reg('GetJobName', function()
     if type(Bridge.Client.GetJob) ~= 'function' then return nil end
     return (Bridge.Client.GetJob() or {}).name
-end
+end)
 
-function GetJobGrade()
+reg('GetJobGrade', function()
     if type(Bridge.Client.GetJob) ~= 'function' then return nil end
     return (Bridge.Client.GetJob() or {}).grade
-end
+end)
 
-function IsOnDuty()
+reg('IsOnDuty', function()
     if type(Bridge.Client.GetJob) ~= 'function' then return false end
     return (Bridge.Client.GetJob() or {}).onDuty == true
-end
+end)
 
-function IsBoss()
+reg('IsBoss', function()
     if type(Bridge.Client.GetJob) ~= 'function' then return false end
     return (Bridge.Client.GetJob() or {}).isBoss == true
-end
+end)
 
 -- ── Gang ───────────────────────────────────────────────────────────────────
 
-function GetGang()
+reg('GetGang', function()
     if type(Bridge.Client.GetGang) ~= 'function' then return {} end
     return Bridge.Client.GetGang() or {}
-end
+end)
 
-function GetGangName()
+reg('GetGangName', function()
     if type(Bridge.Client.GetGang) ~= 'function' then return nil end
     return (Bridge.Client.GetGang() or {}).name
-end
+end)
 
-function GetGangGrade()
+reg('GetGangGrade', function()
     if type(Bridge.Client.GetGang) ~= 'function' then return nil end
     return (Bridge.Client.GetGang() or {}).grade
-end
+end)
 
 -- ── Money ──────────────────────────────────────────────────────────────────
 
-function GetMoney(account)
+reg('GetMoney', function(account)
     if type(Bridge.Client.GetMoney) ~= 'function' then return 0 end
     return Bridge.Client.GetMoney(account) or 0
-end
+end)
 
 -- ── Inventory ──────────────────────────────────────────────────────────────
 
-function HasItem(item)
+reg('HasItem', function(item)
     if type(Bridge.Client.HasItem) ~= 'function' then return false end
     return Bridge.Client.HasItem(item) == true
-end
+end)
 
-function GetItemCount(item)
-    if GetResourceState('ox_inventory') == 'started' then
+reg('GetItemCount', function(item)
+    if isStarted('ox_inventory') then
         return exports.ox_inventory:GetItemCount(item) or 0
     end
     if type(Bridge.Client.HasItem) ~= 'function' then return 0 end
     return Bridge.Client.HasItem(item) and 1 or 0
-end
+end)
 
 -- ── Notify / UI ────────────────────────────────────────────────────────────
 
-function Notify(message, notifyType, duration)
+reg('Notify', function(message, notifyType, duration)
     if type(Bridge.Client.Notify) ~= 'function' then return end
     Bridge.Client.Notify(message, notifyType, duration)
-end
+end)
 
-function Progress(opts, callback)
+reg('Progress', function(opts, callback)
     if type(Bridge.Client.Progress) ~= 'function' then
         if type(callback) == 'function' then callback(false) end
         return
     end
     Bridge.Client.Progress(opts, callback)
-end
+end)
 
 -- ── Callbacks ──────────────────────────────────────────────────────────────
 
-function TriggerCallback(name, callback, ...)
+reg('TriggerCallback', function(name, callback, ...)
     if type(Bridge.Client.TriggerCallback) ~= 'function' then
-        print('^1[tac_bridge] TriggerCallback: Bridge.Client not initialised^0')
+        print('^1[tac_bridge] TriggerCallback: Bridge.Client not ready^0')
         return
     end
     Bridge.Client.TriggerCallback(name, callback, ...)
-end
+end)
 
-function RegisterCallback(name, handler)
+reg('RegisterCallback', function(name, handler)
     if type(Bridge.Client.RegisterCallback) ~= 'function' then return end
     Bridge.Client.RegisterCallback(name, handler)
-end
+end)
 
 -- ── Fuel ───────────────────────────────────────────────────────────────────
 
-function GetFuel(vehicle)
+reg('GetFuel', function(vehicle)
     if type(Bridge.Client.GetFuel) ~= 'function' then return 100 end
     return Bridge.Client.GetFuel(vehicle) or 100
-end
+end)
 
-function SetFuel(vehicle, amount)
+reg('SetFuel', function(vehicle, amount)
     if type(Bridge.Client.SetFuel) ~= 'function' then return end
     Bridge.Client.SetFuel(vehicle, amount)
-end
+end)
 
 -- ── VehicleKeys ────────────────────────────────────────────────────────────
 
-function HasVehicleKeys(plate)
+reg('HasVehicleKeys', function(plate)
     if type(Bridge.Client.HasVehicleKeys) ~= 'function' then return false end
     return Bridge.Client.HasVehicleKeys(plate) == true
-end
+end)
 
 -- ── Target ─────────────────────────────────────────────────────────────────
 
-function HasTarget()
+reg('HasTarget', function()
     if type(Bridge.Client.HasTarget) ~= 'function' then return false end
     return Bridge.Client.HasTarget()
-end
+end)
 
-function AddBoxZone(data)
+reg('AddBoxZone', function(data)
     if type(Bridge.Client.AddBoxZone) ~= 'function' then return end
     return Bridge.Client.AddBoxZone(data)
-end
+end)
 
-function AddSphereZone(data)
+reg('AddSphereZone', function(data)
     if type(Bridge.Client.AddSphereZone) ~= 'function' then return end
     return Bridge.Client.AddSphereZone(data)
-end
+end)
 
-function AddPolyZone(data)
+reg('AddPolyZone', function(data)
     if type(Bridge.Client.AddPolyZone) ~= 'function' then return end
     return Bridge.Client.AddPolyZone(data)
-end
+end)
 
-function RemoveZone(name)
+reg('RemoveZone', function(name)
     if type(Bridge.Client.RemoveZone) ~= 'function' then return end
     Bridge.Client.RemoveZone(name)
-end
+end)
 
-function AddTargetEntity(entities, options, distance)
+reg('AddTargetEntity', function(entities, options, distance)
     if type(Bridge.Client.AddTargetEntity) ~= 'function' then return end
     Bridge.Client.AddTargetEntity(entities, options, distance)
-end
+end)
 
-function RemoveTargetEntity(entities, labels)
+reg('RemoveTargetEntity', function(entities, labels)
     if type(Bridge.Client.RemoveTargetEntity) ~= 'function' then return end
     Bridge.Client.RemoveTargetEntity(entities, labels)
-end
+end)
 
-function AddLocalEntity(entities, options, distance)
+reg('AddLocalEntity', function(entities, options, distance)
     if type(Bridge.Client.AddLocalEntity) ~= 'function' then return end
     Bridge.Client.AddLocalEntity(entities, options, distance)
-end
+end)
 
-function RemoveLocalEntity(entities, labels)
+reg('RemoveLocalEntity', function(entities, labels)
     if type(Bridge.Client.RemoveLocalEntity) ~= 'function' then return end
     Bridge.Client.RemoveLocalEntity(entities, labels)
-end
+end)
 
-function AddTargetModel(models, options, distance)
+reg('AddTargetModel', function(models, options, distance)
     if type(Bridge.Client.AddTargetModel) ~= 'function' then return end
     Bridge.Client.AddTargetModel(models, options, distance)
-end
+end)
 
-function RemoveTargetModel(models, labels)
+reg('RemoveTargetModel', function(models, labels)
     if type(Bridge.Client.RemoveTargetModel) ~= 'function' then return end
     Bridge.Client.RemoveTargetModel(models, labels)
-end
+end)
 
-function AddGlobalPlayer(options, distance)
+reg('AddGlobalPlayer', function(options, distance)
     if type(Bridge.Client.AddGlobalPlayer) ~= 'function' then return end
     Bridge.Client.AddGlobalPlayer(options, distance)
-end
+end)
 
-function RemoveGlobalPlayer(labels)
+reg('RemoveGlobalPlayer', function(labels)
     if type(Bridge.Client.RemoveGlobalPlayer) ~= 'function' then return end
     Bridge.Client.RemoveGlobalPlayer(labels)
-end
+end)
 
-function AddGlobalPed(options, distance)
+reg('AddGlobalPed', function(options, distance)
     if type(Bridge.Client.AddGlobalPed) ~= 'function' then return end
     Bridge.Client.AddGlobalPed(options, distance)
-end
+end)
 
-function RemoveGlobalPed(labels)
+reg('RemoveGlobalPed', function(labels)
     if type(Bridge.Client.RemoveGlobalPed) ~= 'function' then return end
     Bridge.Client.RemoveGlobalPed(labels)
-end
+end)
 
-function AddGlobalVehicle(options, distance)
+reg('AddGlobalVehicle', function(options, distance)
     if type(Bridge.Client.AddGlobalVehicle) ~= 'function' then return end
     Bridge.Client.AddGlobalVehicle(options, distance)
-end
+end)
 
-function RemoveGlobalVehicle(labels)
+reg('RemoveGlobalVehicle', function(labels)
     if type(Bridge.Client.RemoveGlobalVehicle) ~= 'function' then return end
     Bridge.Client.RemoveGlobalVehicle(labels)
-end
+end)
 
-function AddGlobalObject(options, distance)
+reg('AddGlobalObject', function(options, distance)
     if type(Bridge.Client.AddGlobalObject) ~= 'function' then return end
     Bridge.Client.AddGlobalObject(options, distance)
-end
+end)
 
-function RemoveGlobalObject(labels)
+reg('RemoveGlobalObject', function(labels)
     if type(Bridge.Client.RemoveGlobalObject) ~= 'function' then return end
     Bridge.Client.RemoveGlobalObject(labels)
-end
+end)
 
-print('^2[tac_bridge] client/exports.lua: all exports registered^0')
+print('^2[tac_bridge] client exports registered (OAL)^0')

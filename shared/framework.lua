@@ -1,17 +1,17 @@
 --[[
     tac_bridge — shared/framework.lua
-    Auto-detects which framework is active and exposes Bridge.Framework.
+    Auto-detects which framework is active and sets Bridge.Framework.
 
-    Supported frameworks:
-      'qbx'    — Qbox  (qbx_core)            github.com/Qbox-project
-      'qb'     — QBCore (qb-core)            github.com/qbcore-framework
-      'esx'    — ESX Legacy (es_extended)    github.com/esx-framework
-      'ox'     — ox_core (ARCHIVED Apr 2025) github.com/overextended / github.com/esx-framework fork
-      'nd'     — ND Framework (ND_Core)      github.com/ND-Framework
-      'mythic' — Mythic Framework (mythic-base) github.com/Mythic-Framework
-                 NOTE: mythic-base has no built-in money/job system.
-                 Money and jobs live in separate Mythic component resources.
-                 Override Bridge.Server/Client functions where needed.
+    Supported:
+      'qbx'    — Qbox  (qbx_core)
+      'qb'     — QBCore (qb-core)
+      'esx'    — ESX Legacy (es_extended)
+      'ox'     — ox_core
+      'nd'     — ND Framework (ND_Core)
+      'mythic' — Mythic Framework (mythic-base)
+
+    You can force a framework in shared/config.lua:
+        Bridge.Config.ForceFramework = 'qbx'
 ]]
 
 Bridge = Bridge or {}
@@ -21,17 +21,17 @@ local function detectFramework()
         return Bridge.Config.ForceFramework
     end
 
-    -- QBX must come before QBCore — qbx servers also expose a qb-core shim
-    if GetResourceState('qbx_core')   == 'started' then return 'qbx'    end
-    if GetResourceState('qb-core')    == 'started' then return 'qb'     end
-    if GetResourceState('es_extended')== 'started' then return 'esx'    end
-    if GetResourceState('ox_core')    == 'started' then return 'ox'     end
-    if GetResourceState('ND_Core')    == 'started' then return 'nd'     end
-    if GetResourceState('mythic-base')== 'started' then return 'mythic' end
+    -- QBX must come before QBCore — QBX servers expose a qb-core compat shim
+    if isStarted('qbx_core')    then return 'qbx'    end
+    if isStarted('qb-core')     then return 'qb'     end
+    if isStarted('es_extended') then return 'esx'    end
+    if isStarted('ox_core')     then return 'ox'     end
+    if isStarted('ND_Core')     then return 'nd'     end
+    if isStarted('mythic-base') then return 'mythic' end
 
     print('^1[tac_bridge] WARNING: No supported framework detected.^0')
     return 'unknown'
 end
 
 Bridge.Framework = detectFramework()
-print(string.format('^2[tac_bridge] Detected framework: %s^0', Bridge.Framework))
+print(('^2[tac_bridge] Detected framework: %s^0'):format(Bridge.Framework))
